@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  password      String
+  role          Role           @default(DONOR)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  campaigns     Campaign[]
+  donations     Donation[]
+  organizations Organization[]
+  volunteerOpportunities VolunteerOpportunity[]
+}
+
+model Organization {
+  id          String     @id @default(cuid())
+  name        String
+  description String
+  logo        String?
+  website     String?
+  userId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  campaigns   Campaign[]
+  user        User       @relation(fields: [userId], references: [id])
+  volunteerOpportunities VolunteerOpportunity[]
+}
+
+model Campaign {
+  id             String       @id @default(cuid())
+  title          String
+  description    String
+  targetAmount   Float
+  currentAmount  Float        @default(0)
+  startDate      DateTime     @default(now())
+  endDate        DateTime
+  status         Status       @default(ACTIVE)
+  image          String?
+  organizationId String
+  userId         String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  donations      Donation[]
+}
+
+model Donation {
+  id         String   @id @default(cuid())
+  amount     Float
+  message    String?
+  campaignId String
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model VolunteerOpportunity {
+  id             String     @id @default(cuid())
+  title          String
+  description    String
+  date           DateTime
+  location       String
+  requiredSkills String[]
+  status         OpportunityStatus @default(OPEN)
+  organizationId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  volunteers     User[]
+}
+
+enum Role {
+  ADMIN
+  ORGANIZATION
+  DONOR
+  VOLUNTEER
+}
+
+enum Status {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum OpportunityStatus {
+  OPEN
+  FILLED
+  CANCELLED
+  COMPLETED
+}
