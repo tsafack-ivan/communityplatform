@@ -34,13 +34,13 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <Link href="/register?type=ngo">
-                  <Button size="lg" variant="secondary" className="font-semibold">
+                  <Button  variant="secondary" className="font-semibold">
                     Register as NGO
                   </Button>
                 </Link>
                 <Link href="/register?type=donor">
                   <Button
-                    size="lg"
+                   
                     variant="outline"
                     className="text-white border-white hover:bg-blue-700 font-semibold"
                   >
