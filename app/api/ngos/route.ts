@@ -1,11 +1,10 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse, NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-export async function GET(req) {
+export async function GET(req: NextRequest) {
   try {
     const organizations = await prisma.organization.findMany({
+      where: { status: 'APPROVED' },
       include: {
         user: {
           select: {

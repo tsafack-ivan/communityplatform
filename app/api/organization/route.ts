@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { jwtConfig } from '@/lib/jwt';
 import prisma from '@/lib/prisma';
 
 // Middleware to verify JWT token
-const verifyToken = (req: Request) => {
+const verifyToken = (req: NextRequest) => {
   const token = req.headers.get('authorization')?.split(' ')[1];
   if (!token) {
     throw new Error('No token provided');
@@ -12,7 +12,7 @@ const verifyToken = (req: Request) => {
 };
 
 // Create organization
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -58,7 +58,8 @@ export async function POST(request: Request) {
         name,
         description,
         website,
-        userId: decoded.userId
+        userId: decoded.userId,
+        status: 'PENDING',
       }
     });
 
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
 }
 
 // Get organization
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -113,7 +114,7 @@ export async function GET(request: Request) {
 }
 
 // Update organization
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     const payload = verifyToken(req);
     const { name, description, website } = await req.json();

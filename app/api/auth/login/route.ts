@@ -44,11 +44,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch organizationId if user is ORGANIZATION
+    let organizationId = null;
+    if (user.role === 'ORGANIZATION') {
+      const org = await prisma.organization.findFirst({ where: { userId: user.id } });
+      organizationId = org?.id || null;
+    }
+
     // Create JWT token
     const token = jwtConfig.sign({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      organizationId,
     });
 
     // Remove password from response

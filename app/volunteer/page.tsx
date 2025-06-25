@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,23 +12,31 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import Link from "next/link"
+import { format } from "date-fns"
 
 interface VolunteerOpportunity {
   id: string
   title: string
-  organization: string
   description: string
+  date: string
   location: string
-  duration: string
-  requirements: string[]
-  category: string
-  image: string
+  requiredSkills: string[]
+  status: string
+  organization: {
+    id: string
+    name: string
+    logo: string | null
+    description: string
+  }
+  createdAt: string
 }
 
 export default function VolunteerPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedOpportunity, setSelectedOpportunity] = useState<VolunteerOpportunity | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [opportunities, setOpportunities] = useState<VolunteerOpportunity[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -37,47 +45,31 @@ export default function VolunteerPage() {
     motivation: ""
   })
 
-  const opportunities: VolunteerOpportunity[] = [
-    {
-      id: "1",
-      title: "Teaching Assistant",
-      organization: "Hope Foundation",
-      description: "Help children with their studies and provide additional support in classrooms.",
-      location: "Yaounde, Cameroon",
-      duration: "3-6 months",
-      requirements: ["Teaching experience", "Patience", "Good communication skills"],
-      category: "Education",
-      image: "/images/education.jfif"
-    },
-    {
-      id: "2",
-      title: "Community Health Worker",
-      organization: "Water for Life",
-      description: "Assist in health awareness campaigns and basic health check-ups.",
-      location: "Douala, Cameroon",
-      duration: "6-12 months",
-      requirements: ["Basic health knowledge", "Community engagement", "First aid training"],
-      category: "Healthcare",
-      image: "/images/water.jfif"
-    },
-    {
-      id: "3",
-      title: "Food Distribution Volunteer",
-      organization: "Food Bank",
-      description: "Help in organizing and distributing food supplies to needy families.",
-      location: "Bamenda, Cameroon",
-      duration: "Flexible",
-      requirements: ["Physical fitness", "Team player", "Organizational skills"],
-      category: "Food Security",
-      image: "/images/food.avif"
+  useEffect(() => {
+    fetchOpportunities()
+  }, [])
+
+  const fetchOpportunities = async () => {
+    try {
+      const response = await fetch('/api/volunteer/opportunities/public')
+      if (!response.ok) {
+        throw new Error('Failed to fetch volunteer opportunities')
+      }
+      const data = await response.json()
+      setOpportunities(data)
+    } catch (error) {
+      toast.error('Error loading volunteer opportunities')
+      console.error('Error fetching volunteer opportunities:', error)
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
 
   const filteredOpportunities = opportunities.filter(opp =>
     opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    opp.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    opp.organization.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     opp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    opp.category.toLowerCase().includes(searchQuery.toLowerCase())
+    opp.location.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleApply = (opportunity: VolunteerOpportunity) => {
@@ -85,18 +77,42 @@ export default function VolunteerPage() {
     setIsDialogOpen(true)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the application to your backend
-    toast.success("Application submitted successfully!")
-    setIsDialogOpen(false)
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      experience: "",
-      motivation: ""
-    })
+    
+    if (!selectedOpportunity) return
+
+    try {
+      const response = await fetch('/api/volunteer/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          opportunityId: selectedOpportunity.id,
+          organizationId: selectedOpportunity.organization.id,
+          name: formData.name,
+          email: formData.email,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit application')
+      }
+
+      toast.success("Application submitted successfully!")
+      setIsDialogOpen(false)
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        experience: "",
+        motivation: ""
+      })
+    } catch (error) {
+      toast.error("Failed to submit application")
+      console.error('Error submitting application:', error)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -105,6 +121,27 @@ export default function VolunteerPage() {
       ...prev,
       [name]: value
     }))
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between">
+          <DashboardHeader
+            heading="Volunteer Opportunities"
+            text="Make a difference by volunteering with our partner organizations"
+          />
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <Home className="h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading volunteer opportunities...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -135,7 +172,9 @@ export default function VolunteerPage() {
 
       {filteredOpportunities.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No opportunities found matching your search.</p>
+          <p className="text-muted-foreground">
+            {searchQuery ? "No opportunities found matching your search." : "No volunteer opportunities available at the moment."}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -144,23 +183,23 @@ export default function VolunteerPage() {
               <div 
                 className="aspect-video relative bg-cover bg-center"
                 style={{
-                  backgroundImage: `url(${opportunity.image})`,
+                  backgroundImage: `url(${opportunity.organization.logo || '/images/charity-background.png'})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
                 }}
               >
                 <div className="absolute inset-0 bg-black/40" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">{opportunity.title}</h3>
+                  <h3 className="text-2xl font-bold text-white text-center px-4">{opportunity.title}</h3>
                 </div>
               </div>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-muted-foreground">{opportunity.organization}</p>
+                    <p className="text-sm text-muted-foreground">{opportunity.organization.name}</p>
                     <p className="text-sm text-muted-foreground">{opportunity.location}</p>
                   </div>
-                  <Badge>{opportunity.category}</Badge>
+                  <Badge>{opportunity.status}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -168,11 +207,13 @@ export default function VolunteerPage() {
                 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm font-medium mb-2">Duration: {opportunity.duration}</p>
+                    <p className="text-sm font-medium mb-2">
+                      Date: {format(new Date(opportunity.date), "MMM d, yyyy")}
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                      {opportunity.requirements.map((req) => (
-                        <Badge key={req} variant="secondary">
-                          {req}
+                      {opportunity.requiredSkills.map((skill) => (
+                        <Badge key={skill} variant="secondary">
+                          {skill}
                         </Badge>
                       ))}
                     </div>
@@ -192,7 +233,7 @@ export default function VolunteerPage() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Apply for {selectedOpportunity?.title}</DialogTitle>
             <DialogDescription>
@@ -239,6 +280,7 @@ export default function VolunteerPage() {
                 name="experience"
                 value={formData.experience}
                 onChange={handleChange}
+                rows={3}
                 required
               />
             </div>
@@ -249,11 +291,12 @@ export default function VolunteerPage() {
                 name="motivation"
                 value={formData.motivation}
                 onChange={handleChange}
+                rows={3}
                 required
               />
             </div>
-            <DialogFooter>
-              <Button type="submit">Submit Application</Button>
+            <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
+              <Button type="submit" className="w-full">Submit Application</Button>
             </DialogFooter>
           </form>
         </DialogContent>

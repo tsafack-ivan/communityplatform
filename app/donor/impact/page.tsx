@@ -1,12 +1,18 @@
+"use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { BarChart3, Users, Globe, Heart } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function ImpactPage() {
+  const [userName, setUserName] = useState("");
+  useEffect(() => {
+    setUserName(localStorage.getItem("userName") || "");
+  }, []);
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardHeader heading="My Impact" text="Welcome, John Smith!" />
+      <DashboardHeader heading="My Impact" text={`Welcome, ${userName || "Donor"}!`} />
       <div className="flex flex-1">
         <aside className="hidden w-64 border-r bg-gray-50 lg:block">
           <div className="flex h-full flex-col gap-2 p-4">

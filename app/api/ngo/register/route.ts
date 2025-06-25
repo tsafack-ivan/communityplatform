@@ -1,10 +1,8 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse, NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
 import { hash } from 'bcryptjs';
 
-const prisma = new PrismaClient();
-
-export async function POST(req) {
+export async function POST(req: NextRequest) {
   try {
     const {
       name,
@@ -63,7 +61,8 @@ export async function POST(req) {
           name,
           description,
           website,
-          userId: user.id
+          userId: user.id,
+          status: 'PENDING',
         }
       });
 

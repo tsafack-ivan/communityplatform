@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,45 +15,66 @@ interface NGO {
   id: string;
   name: string;
   email: string;
-  status: "pending" | "approved" | "rejected";
-  registrationDate: Date;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: Date;
   description: string;
 }
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [ngos, setNgos] = useState<NGO[]>([
-    {
-      id: "1",
-      name: "Education for All",
-      email: "contact@educationforall.org",
-      status: "pending",
-      registrationDate: new Date("2024-02-01"),
-      description: "Providing quality education to underprivileged children"
-    },
-    {
-      id: "2",
-      name: "Clean Water Initiative",
-      email: "info@cleanwater.org",
-      status: "approved",
-      registrationDate: new Date("2024-01-15"),
-      description: "Bringing clean water to rural communities"
-    },
-    {
-      id: "3",
-      name: "Food Security Program",
-      email: "contact@foodsecurity.org",
-      status: "rejected",
-      registrationDate: new Date("2024-02-10"),
-      description: "Combating hunger through sustainable food programs"
-    }
-  ]);
+  const [ngos, setNgos] = useState<NGO[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleNGOStatus = (ngoId: string, newStatus: "approved" | "rejected") => {
-    setNgos(ngos.map(ngo => 
-      ngo.id === ngoId ? { ...ngo, status: newStatus } : ngo
-    ));
-    toast.success(`NGO ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
+  useEffect(() => {
+    fetchPendingNGOs();
+  }, []);
+
+  const fetchPendingNGOs = async () => {
+    try {
+      const response = await fetch('/api/admin/ngos');
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending NGOs');
+      }
+      const data = await response.json();
+      setNgos(data);
+    } catch (error) {
+      toast.error('Error loading pending NGOs');
+      console.error('Error fetching pending NGOs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNGOStatus = async (ngoId: string, newStatus: "APPROVED" | "REJECTED") => {
+    try {
+      const endpoint = newStatus === "APPROVED" ? '/api/admin/ngos/approve' : '/api/admin/ngos/reject';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: ngoId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update NGO status');
+      }
+
+      // Update the local state
+      setNgos(ngos.map(ngo => 
+        ngo.id === ngoId ? { ...ngo, status: newStatus } : ngo
+      ));
+      
+      toast.success(`NGO ${newStatus.toLowerCase()} successfully`);
+      
+      // Refresh the list to show updated data
+      setTimeout(() => {
+        fetchPendingNGOs();
+      }, 1000);
+    } catch (error) {
+      toast.error(`Error ${newStatus.toLowerCase()}ing NGO`);
+      console.error('Error updating NGO status:', error);
+    }
   };
 
   const filteredNGOs = ngos.filter(ngo =>
@@ -61,6 +82,22 @@ export default function AdminDashboard() {
     ngo.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ngo.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <DashboardHeader
+          heading="Admin Dashboard"
+          text="Manage your charity platform"
+          userType="admin"
+          userName="Admin"
+        />
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading pending NGOs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -98,8 +135,8 @@ export default function AdminDashboard() {
             <Heart className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-purple-100">+4 new this month</p>
+            <div className="text-2xl font-bold">{ngos.length}</div>
+            <p className="text-xs text-purple-100">Pending approval</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
@@ -130,65 +167,76 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredNGOs.map((ngo) => (
-              <div key={ngo.id} className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="rounded-full bg-purple-100 p-2">
-                    <Heart className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{ngo.name}</p>
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm text-muted-foreground">{ngo.email}</p>
-                      <span className="text-muted-foreground">•</span>
-                      <p className="text-sm text-muted-foreground">{format(ngo.registrationDate, "MMM d, yyyy")}</p>
+          {filteredNGOs.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No pending NGOs found.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredNGOs.map((ngo) => (
+                <div key={ngo.id} className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className="rounded-full bg-purple-100 p-2">
+                      <Heart className="h-6 w-6 text-purple-600" />
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{ngo.description}</p>
+                    <div>
+                      <p className="font-medium">{ngo.name}</p>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm text-muted-foreground">{ngo.email}</p>
+                        <span className="text-muted-foreground">•</span>
+                        <p className="text-sm text-muted-foreground">
+                          {ngo.createdAt ? (() => {
+                            const date = new Date(ngo.createdAt);
+                            return isNaN(date.getTime()) ? "N/A" : format(date, "MMM d, yyyy");
+                          })() : "N/A"}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{ngo.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {ngo.status === "PENDING" ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-green-50 text-green-600 hover:bg-green-100"
+                          onClick={() => handleNGOStatus(ngo.id, "APPROVED")}
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-red-50 text-red-600 hover:bg-red-100"
+                          onClick={() => handleNGOStatus(ngo.id, "REJECTED")}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Reject
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge
+                        variant={ngo.status === "APPROVED" ? "default" : "destructive"}
+                        className={cn(
+                          "px-2 py-1",
+                          ngo.status === "APPROVED" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        )}
+                      >
+                        {ngo.status === "APPROVED" ? (
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                        ) : (
+                          <XCircle className="mr-2 h-4 w-4" />
+                        )}
+                        {ngo.status.toLowerCase()}
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {ngo.status === "pending" ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-green-50 text-green-600 hover:bg-green-100"
-                        onClick={() => handleNGOStatus(ngo.id, "approved")}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-red-50 text-red-600 hover:bg-red-100"
-                        onClick={() => handleNGOStatus(ngo.id, "rejected")}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Reject
-                      </Button>
-                    </>
-                  ) : (
-                    <Badge
-                      variant={ngo.status === "approved" ? "default" : "destructive"}
-                      className={cn(
-                        "px-2 py-1",
-                        ngo.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                      )}
-                    >
-                      {ngo.status === "approved" ? (
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                      ) : (
-                        <XCircle className="mr-2 h-4 w-4" />
-                      )}
-                      {ngo.status}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

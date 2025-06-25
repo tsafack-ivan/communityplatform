@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     let decoded;
     try {

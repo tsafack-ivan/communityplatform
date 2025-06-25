@@ -106,9 +106,10 @@ export const authService = {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       const role = localStorage.getItem('userRole');
-      return { token, role };
+      const name = localStorage.getItem('userName');
+      return { token, role, name };
     }
-    return { token: null, role: null };
+    return { token: null, role: null, name: null };
   }
 };
 

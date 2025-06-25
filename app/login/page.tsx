@@ -39,6 +39,9 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
+      // Store user name in localStorage
+      localStorage.setItem('userName', data.user.name || '');
+
       await login(data.token);
       
       // Redirect based on user role

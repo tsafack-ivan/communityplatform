@@ -19,6 +19,8 @@ model User {
   donations     Donation[]
   organizations Organization[]
   volunteerOpportunities VolunteerOpportunity[]
+  phone         String?        // Added for SMS functionality
+  attendingEvents Event[]      @relation("AttendeesOnEvents")
 }
 
 model Organization {
@@ -33,6 +35,9 @@ model Organization {
   campaigns   Campaign[]
   user        User       @relation(fields: [userId], references: [id])
   volunteerOpportunities VolunteerOpportunity[]
+  status      OrganizationStatus @default(PENDING)
+  events      Event[]
+  volunteerApplications VolunteerApplication[]
 }
 
 model Campaign {
@@ -66,6 +71,20 @@ model Donation {
   user       User     @relation(fields: [userId], references: [id])
 }
 
+model Event {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  date           DateTime
+  location       String
+  maxAttendees   Int
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  attendees      User[]       @relation("AttendeesOnEvents")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 model VolunteerOpportunity {
   id             String     @id @default(cuid())
   title          String
@@ -79,6 +98,19 @@ model VolunteerOpportunity {
   updatedAt      DateTime   @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
   volunteers     User[]
+  applications   VolunteerApplication[]
+}
+
+model VolunteerApplication {
+  id             String        @id @default(cuid())
+  name           String
+  email          String
+  status         String        // e.g., 'pending', 'approved', 'rejected'
+  appliedAt      DateTime      @default(now())
+  opportunity    VolunteerOpportunity @relation(fields: [opportunityId], references: [id])
+  opportunityId  String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organizationId String
 }
 
 enum Role {
@@ -99,4 +131,10 @@ enum OpportunityStatus {
   FILLED
   CANCELLED
   COMPLETED
+}
+
+enum OrganizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

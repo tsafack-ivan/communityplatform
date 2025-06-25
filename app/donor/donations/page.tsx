@@ -6,40 +6,13 @@ import { Badge } from "@/components/ui/badge"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { Download, Filter } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Input } from "@/components/ui/input"
 
 export default function DonationsPage() {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <DashboardHeader heading="My Donations" text="Welcome, John Smith!" />
-      <div className="flex flex-1">
-        <aside className="hidden w-64 border-r bg-gray-50 lg:block">
-          <div className="flex h-full flex-col gap-2 p-4">
-            <DashboardNav userType="donor" />
-          </div>
-        </aside>
-        <main className="flex-1 overflow-auto bg-gray-50 p-6">
-          <div className="mx-auto max-w-6xl space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Donations</h1>
-              <p className="text-gray-500">View your donation history and download receipts.</p>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div className="flex gap-4">
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter
-                </Button>
-                <Button variant="outline">Export</Button>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Total Donated</p>
-                <p className="text-2xl font-bold text-gray-900">12,500 FCFA</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {[
+  const [userName, setUserName] = useState("");
+  const [filter, setFilter] = useState("");
+  const [donations] = useState([
                 {
                   ngo: "Global Health Initiative",
                   campaign: "Clean Water Initiative",
@@ -80,7 +53,66 @@ export default function DonationsPage() {
                   status: "Processed",
                   receipt: true
                 }
-              ].map((donation, index) => (
+  ]);
+
+  useEffect(() => {
+    setUserName(localStorage.getItem("userName") || "");
+  }, []);
+
+  const filteredDonations = donations.filter(donation =>
+    donation.campaign.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const handleExport = () => {
+    const csv = [
+      ["NGO", "Campaign", "Amount", "Date", "Status"],
+      ...filteredDonations.map(d => [d.ngo, d.campaign, d.amount, d.date, d.status])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "donations.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader heading="My Donations" text={`Welcome, ${userName || "Donor"}!`} />
+      <div className="flex flex-1">
+        <aside className="hidden w-64 border-r bg-gray-50 lg:block">
+          <div className="flex h-full flex-col gap-2 p-4">
+            <DashboardNav userType="donor" />
+          </div>
+        </aside>
+        <main className="flex-1 overflow-auto bg-gray-50 p-6">
+          <div className="mx-auto max-w-6xl space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Donations</h1>
+              <p className="text-gray-500">View your donation history and download receipts.</p>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4 items-center">
+                <Input
+                  placeholder="Filter by campaign"
+                  value={filter}
+                  onChange={e => setFilter(e.target.value)}
+                  className="w-48"
+                />
+                <Button variant="outline" onClick={() => setFilter("")}>Clear</Button>
+                <Button variant="outline" onClick={handleExport}>Export</Button>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Total Donated</p>
+                <p className="text-2xl font-bold text-gray-900">12,500 FCFA</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {filteredDonations.map((donation, index) => (
                 <Card key={index}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Progress } from "@/components/ui/progress"
 
 interface Campaign {
   id: string
@@ -34,6 +35,10 @@ interface Campaign {
   category: string
   image: string
   ngo: string
+  ngoId: string
+  startDate: string
+  endDate: string
+  progress: number
 }
 
 type PaymentMethod = "mobile-money" | "credit-card" | "bank-transfer"
@@ -47,39 +52,28 @@ export default function CampaignsPage() {
   const [cardNumber, setCardNumber] = useState("")
   const [bankAccount, setBankAccount] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const campaigns: Campaign[] = [
-    {
-      id: "1",
-      title: "Education for All",
-      description: "Providing quality education to underprivileged children in rural areas",
-      goal: 1000000,
-      raised: 750000,
-      category: "Education",
-      image: "/images/education.jfif",
-      ngo: "Hope Foundation"
-    },
-    {
-      id: "2",
-      title: "Clean Water Initiative",
-      description: "Bringing clean drinking water to communities in need",
-      goal: 500000,
-      raised: 300000,
-      category: "Health",
-      image: "/images/water.jfif",
-      ngo: "Water for Life"
-    },
-    {
-      id: "3",
-      title: "Food Security Program",
-      description: "Ensuring food security for vulnerable families",
-      goal: 800000,
-      raised: 450000,
-      category: "Food",
-      image: "/images/food.avif",
-      ngo: "Food Bank"
+  useEffect(() => {
+    fetchCampaigns()
+  }, [])
+
+  const fetchCampaigns = async () => {
+    try {
+      const response = await fetch('/api/campaigns')
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns')
+      }
+      const data = await response.json()
+      setCampaigns(data)
+    } catch (error) {
+      toast.error('Error loading campaigns')
+      console.error('Error fetching campaigns:', error)
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
 
   const filteredCampaigns = useMemo(() => {
     if (!searchQuery.trim()) return campaigns
@@ -190,6 +184,20 @@ export default function CampaignsPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <DashboardHeader
+          heading="Active Campaigns"
+          text="Support causes that matter to you"
+        />
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading campaigns...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <DashboardHeader
@@ -207,60 +215,57 @@ export default function CampaignsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button type="submit">Search</Button>
       </form>
 
       {filteredCampaigns.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No campaigns found matching your search.</p>
+          <p className="text-muted-foreground">
+            {searchQuery ? "No campaigns found matching your search." : "No active campaigns available at the moment."}
+          </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCampaigns.map((campaign) => (
             <Card key={campaign.id} className="overflow-hidden">
               <div 
                 className="aspect-video relative bg-cover bg-center"
                 style={{
                   backgroundImage: `url(${campaign.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
                 }}
               >
                 <div className="absolute inset-0 bg-black/40" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">{campaign.title}</h3>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-xl font-bold text-white mb-2">{campaign.title}</h3>
+                  <p className="text-sm text-gray-200">{campaign.ngo}</p>
                 </div>
               </div>
-              <CardHeader>
-                <p className="text-sm text-muted-foreground">
-                  by {campaign.ngo}
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                  {campaign.description}
                 </p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4">{campaign.description}</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Raised</span>
-                    <span className="font-medium">
-                      {campaign.raised.toLocaleString()} FCFA
-                    </span>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Progress</span>
+                      <span>{campaign.progress}%</span>
+                    </div>
+                    <Progress value={campaign.progress} className="h-2" />
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full"
-                      style={{
-                        width: `${(campaign.raised / campaign.goal) * 100}%`
-                      }}
-                    />
+
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold">{campaign.raised.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Raised (FCFA)</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{campaign.goal.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Goal (FCFA)</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Goal</span>
-                    <span className="font-medium">
-                      {campaign.goal.toLocaleString()} FCFA
-                    </span>
-                  </div>
+
                   <Button 
-                    className="w-full mt-4"
+                    className="w-full"
                     onClick={() => handleDonate(campaign)}
                   >
                     Donate Now
@@ -272,12 +277,13 @@ export default function CampaignsPage() {
         </div>
       )}
 
+      {/* Donation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Make a Donation</DialogTitle>
             <DialogDescription>
-              Support {selectedCampaign?.title} by making a donation
+              Support {selectedCampaign?.title} by making a donation.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -294,49 +300,18 @@ export default function CampaignsPage() {
             
             <div className="grid gap-2">
               <Label>Payment Method</Label>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
-                className="grid grid-cols-3 gap-4"
-              >
-                <div>
-                  <RadioGroupItem
-                    value="mobile-money"
-                    id="mobile-money"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="mobile-money"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span>Mobile Money</span>
-                  </Label>
+              <RadioGroup value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="mobile-money" id="mobile-money" />
+                  <Label htmlFor="mobile-money">Mobile Money</Label>
                 </div>
-                <div>
-                  <RadioGroupItem
-                    value="credit-card"
-                    id="credit-card"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="credit-card"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span>Credit Card</span>
-                  </Label>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="credit-card" id="credit-card" />
+                  <Label htmlFor="credit-card">Credit Card</Label>
                 </div>
-                <div>
-                  <RadioGroupItem
-                    value="bank-transfer"
-                    id="bank-transfer"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="bank-transfer"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span>Bank Transfer</span>
-                  </Label>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="bank-transfer" id="bank-transfer" />
+                  <Label htmlFor="bank-transfer">Bank Transfer</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -348,7 +323,7 @@ export default function CampaignsPage() {
               Cancel
             </Button>
             <Button onClick={processDonation}>
-              Confirm Donation
+              Donate
             </Button>
           </DialogFooter>
         </DialogContent>

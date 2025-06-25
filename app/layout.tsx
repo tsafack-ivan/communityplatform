@@ -26,14 +26,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="light">
-            <Suspense fallback={null}>
-              {children}
-              <Toaster />
-              <Analytics />
-              <TailwindIndicator />
-            </Suspense>
-          </ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <Suspense fallback={null}>
+            {children}
+            <Toaster />
+            <Analytics />
+            <TailwindIndicator />
+          </Suspense>
+        </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

@@ -244,7 +244,7 @@ export default function OrganizationDashboard() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${analytics.totalRaised.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">${typeof analytics.totalRaised === 'number' ? analytics.totalRaised.toLocaleString() : '0'}</div>
                   <p className="text-xs text-muted-foreground">Across all campaigns</p>
                 </CardContent>
               </Card>
@@ -321,10 +321,10 @@ export default function OrganizationDashboard() {
                           <p className="text-sm text-gray-500">{campaign.description}</p>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
-                              ${campaign.currentAmount.toLocaleString()} raised
+                              ${typeof campaign.currentAmount === 'number' ? campaign.currentAmount.toLocaleString() : '0'} raised
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              Target: ${campaign.targetAmount.toLocaleString()}
+                              Target: ${typeof campaign.targetAmount === 'number' ? campaign.targetAmount.toLocaleString() : '0'}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               Ends: {format(new Date(campaign.endDate), 'MMM d, yyyy')}
@@ -372,7 +372,7 @@ export default function OrganizationDashboard() {
                       <div key={donation.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">${donation.amount.toLocaleString()}</span>
+                            <span className="font-medium">${typeof donation.amount === 'number' ? donation.amount.toLocaleString() : '0'}</span>
                             <span className="text-sm text-gray-500">by {donation.donor.name}</span>
                           </div>
                           <p className="text-sm text-gray-500">{donation.campaign.title}</p>

@@ -95,6 +95,7 @@ export async function POST(req: Request) {
             description: description || 'No description provided',
             website: website || null,
             userId: user.id,
+            status: 'PENDING',
           },
         });
       }
@@ -104,10 +105,15 @@ export async function POST(req: Request) {
 
     // Generate JWT token
     console.log('Generating JWT token');
+    let organizationId = null;
+    if (result.user.role === 'ORGANIZATION' && result.organization) {
+      organizationId = result.organization.id;
+    }
     const token = jwtConfig.sign({
       userId: result.user.id,
       email: result.user.email,
-      role: result.user.role
+      role: result.user.role,
+      organizationId,
     });
 
     // Remove password from response

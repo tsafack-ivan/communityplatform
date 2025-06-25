@@ -1,41 +1,53 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 
-// This will be replaced with actual data fetching from your database
-const mockCampaigns = [
-  {
-    id: '1',
-    title: 'Education for All',
-    description: 'Help provide education to underprivileged children',
-    targetAmount: 50000,
-    currentAmount: 25000,
-    startDate: '2024-03-01',
-    endDate: '2024-06-01',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Clean Water Initiative',
-    description: 'Bringing clean water to rural communities',
-    targetAmount: 75000,
-    currentAmount: 15000,
-    startDate: '2024-03-15',
-    endDate: '2024-07-15',
-    status: 'active'
-  }
-];
-
 function CampaignsList() {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/campaigns', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch campaigns');
+        }
+        const data = await response.json();
+        setCampaigns(data);
+      } catch (err) {
+        setError('Failed to load campaigns');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCampaigns();
+  }, []);
+
+  if (loading) return <LoadingState />;
+  if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
+  if (campaigns.length === 0) return <div className="text-center py-12">No campaigns found.</div>;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {mockCampaigns.map((campaign) => (
+      {campaigns.map((campaign) => (
         <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle>{campaign.title}</CardTitle>
             <CardDescription>
-              Status: <span className="capitalize">{campaign.status}</span>
+              Status: <span className="capitalize">{campaign.status?.toLowerCase() || 'active'}</span>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -43,15 +55,15 @@ function CampaignsList() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Target Amount:</span>
-                <span>${campaign.targetAmount.toLocaleString()}</span>
+                <span>{campaign.targetAmount?.toLocaleString?.() || campaign.targetAmount} FCFA</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Current Amount:</span>
-                <span>${campaign.currentAmount.toLocaleString()}</span>
+                <span>{campaign.currentAmount?.toLocaleString?.() || campaign.currentAmount} FCFA</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Progress:</span>
-                <span>{Math.round((campaign.currentAmount / campaign.targetAmount) * 100)}%</span>
+                <span>{campaign.targetAmount ? Math.round((campaign.currentAmount / campaign.targetAmount) * 100) : 0}%</span>
               </div>
             </div>
           </CardContent>
@@ -108,16 +120,6 @@ export default function NGOCampaignsPage() {
       <Suspense fallback={<LoadingState />}>
         <CampaignsList />
       </Suspense>
-
-      {mockCampaigns.length === 0 && (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
-          <p className="text-gray-500 mb-4">Create your first campaign to start raising funds</p>
-          <Button asChild>
-            <Link href="/ngo/campaigns/create">Create Campaign</Link>
-          </Button>
-        </div>
-      )}
     </div>
   );
 } 

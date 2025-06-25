@@ -1,18 +1,27 @@
+"use client";
+
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
+import { useEffect, useState } from "react"
 
 export default function DonorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    setUserName(localStorage.getItem("userName") || "");
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader 
         heading="Donor Dashboard" 
-        text="Track your impact and manage your donations"
+        text={`Welcome, ${userName || "Donor"}!`}
         userType="donor"
-        userName="Tsafack Ivan Marc"
+        userName={userName}
       />
       <div className="flex flex-1">
         <aside className="hidden w-64 border-r bg-gray-50 lg:block">

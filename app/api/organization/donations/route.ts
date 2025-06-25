@@ -1,14 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { JwtPayload } from 'jsonwebtoken';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    let decoded;
+    let decoded: JwtPayload & { organizationId?: string };
     try {
-      decoded = verifyToken(req, ['ORGANIZATION', 'ADMIN']);
+      decoded = verifyToken(req, ['ORGANIZATION', 'ADMIN']) as JwtPayload & { organizationId?: string };
     } catch (err) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!decoded.organizationId) {
+      return NextResponse.json({ error: 'No organizationId in token. Please log in again.' }, { status: 400 });
     }
 
     const donations = await prisma.donation.findMany({
@@ -18,8 +23,7 @@ export async function GET(req: Request) {
         }
       },
       include: {
-        campaign: true,
-        donor: true
+        campaign: true
       },
       orderBy: {
         createdAt: 'desc'

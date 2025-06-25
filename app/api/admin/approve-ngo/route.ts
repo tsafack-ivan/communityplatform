@@ -1,16 +1,13 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { verify } from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'charity-platform-secure-jwt-secret-key-2024';
+import { NextResponse, NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { jwtConfig } from '@/lib/jwt';
 
 // Middleware to verify JWT and check admin role
-function verifyAdmin(req) {
+function verifyAdmin(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (!auth) throw new Error('No token provided');
   const token = auth.split(' ')[1];
-  const payload = verify(token, JWT_SECRET);
+  const payload = jwtConfig.verify(token) as { role: string };
   if (payload.role !== 'ADMIN') {
     throw new Error('Forbidden');
   }
@@ -18,7 +15,7 @@ function verifyAdmin(req) {
 }
 
 // Approve an NGO
-export async function POST(req) {
+export async function POST(req: NextRequest) {
   try {
     verifyAdmin(req);
     const { userId } = await req.json();
@@ -30,7 +27,7 @@ export async function POST(req) {
       data: { role: 'ORGANIZATION' },
     });
     return NextResponse.json(user);
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error approving NGO' }, { status: 500 });
   }
 } 
