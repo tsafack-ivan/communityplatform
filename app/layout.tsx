@@ -7,6 +7,7 @@ import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Suspense } from "react"
+import { AuthProvider } from "@/lib/auth"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,14 +25,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light">
-          <Suspense fallback={null}>
-            {children}
-            <Toaster />
-            <Analytics />
-            <TailwindIndicator />
-          </Suspense>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="light">
+            <Suspense fallback={null}>
+              {children}
+              <Toaster />
+              <Analytics />
+              <TailwindIndicator />
+            </Suspense>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

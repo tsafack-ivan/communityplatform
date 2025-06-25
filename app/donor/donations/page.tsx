@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -95,7 +97,21 @@ export default function DonationsPage() {
                       <Badge variant="outline" className="text-green-600 bg-green-50">
                         {donation.status}
                       </Badge>
-                      <Button variant="ghost" size="sm" className="text-blue-600">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600"
+                        onClick={() => {
+                          const receiptContent = `\nNGO: ${donation.ngo}\nCampaign: ${donation.campaign}\nAmount: ${donation.amount}\nDate: ${donation.date}\nStatus: ${donation.status}\n`;
+                          const blob = new Blob([receiptContent], { type: "text/plain" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `receipt-${donation.campaign.replace(/\s+/g, "-")}-${donation.date}.txt`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
                         <Download className="mr-2 h-4 w-4" />
                         Download Receipt
                       </Button>
